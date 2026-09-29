@@ -193,6 +193,19 @@ AWS, Azure, On-Premise), the DCM enforces a strict **Generic Status Enum**.
 Service Providers are responsible for normalizing their internal raw state into
 these generic states before publishing the CloudEvent.
 
+##### Handling ambiguous states
+
+Providers must distinguish between a state that has not been reported yet and a
+genuinely unrecognized state:
+
+- **Not yet reported:** If the backend's state field is unset or zero-valued and
+  no state transition has occurred, map it to the closest in-progress or pending
+  generic status (for example, `PROVISIONING` for VMs or `PROGRESSING` for
+  clusters). Do not map it to `FAILED` solely because the state is unset.
+- **Genuinely unrecognized:** If the backend reports a real, non-zero state that
+  the provider's mapping table does not cover, `FAILED` is an appropriate
+  defensive default.
+
 ##### VM Status
 
 Providers must map their hypervisor-specific states to the following DCM
@@ -209,9 +222,6 @@ Lifecycle Phases: `PROVISIONING`, `RUNNING`, `STOPPED`, `FAILED`, `DELETED`,
 | **DELETING**       | `shutting-down`                                 | `Deleting`               | `Destroying`            |
 | **PAUSED**         | `N/A (AWS does not pause, only stop/hibernate)` | `paused`                 | `Suspended`             |
 | **STOPPING**       | `stopping`                                      | `stopping`               | `GuestOS Shutting Down` |
-
-_Note: If a provider has a state that is ambiguous, they should default to the
-closest "active" state or `FAILED` if functionality is impaired._
 
 ##### Container status
 
